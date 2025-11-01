@@ -1,3 +1,15 @@
+# Base image
+FROM node:20-bookworm-slim
+
+# Copy repository
+COPY . /metrics
+WORKDIR /metrics
+
+# Environment variables
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_BROWSER_PATH=google-chrome-stable
+
+# Setup
 RUN set -eux; \
   chmod +x /metrics/source/app/action/index.mjs; \
   \
@@ -30,3 +42,6 @@ RUN set -eux; \
   \
   # Clean up
   rm -rf /var/lib/apt/lists/* /tmp/*
+
+# Use JSON form for ENTRYPOINT to avoid signal issues
+ENTRYPOINT ["node", "/metrics/source/app/action/index.mjs"]
