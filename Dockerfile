@@ -5,33 +5,42 @@ FROM node:20-bookworm-slim
 COPY . /metrics
 WORKDIR /metrics
 
-# Setup
-RUN chmod +x /metrics/source/app/action/index.mjs \
-  # Install latest chrome dev package, fonts to support major charsets and skip chromium download on puppeteer install
-  # Based on https://github.com/GoogleChrome/puppeteer/blob/master/docs/troubleshooting.md#running-puppeteer-in-docker
-  && apt-get update \
-  && apt-get install -y wget gnupg ca-certificates libgconf-2-4 \
-  && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-  && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
-  && apt-get update \
-  && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 libx11-xcb1 libxtst6 lsb-release --no-install-recommends \
-  # Install deno for miscellaneous scripts
-  && apt-get install -y curl unzip \
-  && curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh \
-  # Install ruby to support github licensed gem
-  && apt-get install -y ruby-full git g++ cmake pkg-config libssl-dev \
-  && gem install licensed \
-  # Install python for node-gyp
-  && apt-get install -y python3 \
-  # Clean apt/lists
-  && rm -rf /var/lib/apt/lists/* \
-  # Install node modules and rebuild indexes
-  && npm ci \
-  && npm run build
-
 # Environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
-ENV PUPPETEER_BROWSER_PATH "google-chrome-stable"
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_BROWSER_PATH=google-chrome-stable
 
-# Execute GitHub action
-ENTRYPOINT node /metrics/source/app/action/index.mjs
+# Setup
+RUN set -eux; \
+  chmod +x /metrics/source/app/action/index.mjs; \
+  \
+  # Install system dependencies
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    wget gnupg ca-certificates curl unzip git \
+    g++ cmake pkg-config libssl-dev python3 \
+    libgconf-2-4 libxss1 libx11-xcb1 libxtst6 lsb-release \
+    zlib1g-dev liblzma-dev libxml2-dev libxslt1-dev; \
+  \
+  # Add Chrome repo & install Chrome + fonts
+  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -; \
+  echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+    google-chrome-stable \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf; \
+  \
+  # Install Deno
+  curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh; \
+  \
+  # Install Ruby gem (licensed + dependencies)
+  gem install nokogiri licensed; \
+  \
+  # Install Node dependencies and build
+  npm ci; \
+  npm run build; \
+  \
+  # Clean up
+  rm -rf /var/lib/apt/lists/* /tmp/*
+
+# Use JSON form for ENTRYPOINT to avoid signal issues
+ENTRYPOINT ["node", "/metrics/source/app/action/index.mjs"]
