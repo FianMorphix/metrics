@@ -1,15 +1,3 @@
-# Base image
-FROM node:20-bookworm-slim
-
-# Copy repository
-COPY . /metrics
-WORKDIR /metrics
-
-# Environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_BROWSER_PATH=google-chrome-stable
-
-# Setup
 RUN set -eux; \
   chmod +x /metrics/source/app/action/index.mjs; \
   \
@@ -17,6 +5,7 @@ RUN set -eux; \
   apt-get update; \
   apt-get install -y --no-install-recommends \
     wget gnupg ca-certificates curl unzip git \
+    ruby-full \
     g++ cmake pkg-config libssl-dev python3 \
     libgconf-2-4 libxss1 libx11-xcb1 libxtst6 lsb-release \
     zlib1g-dev liblzma-dev libxml2-dev libxslt1-dev; \
@@ -32,7 +21,7 @@ RUN set -eux; \
   # Install Deno
   curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh; \
   \
-  # Install Ruby gem (licensed + dependencies)
+  # Install Ruby gems (licensed + deps)
   gem install nokogiri licensed; \
   \
   # Install Node dependencies and build
@@ -41,6 +30,3 @@ RUN set -eux; \
   \
   # Clean up
   rm -rf /var/lib/apt/lists/* /tmp/*
-
-# Use JSON form for ENTRYPOINT to avoid signal issues
-ENTRYPOINT ["node", "/metrics/source/app/action/index.mjs"]
