@@ -17,7 +17,7 @@ RUN set -eux; \
   # Install system dependencies
   apt-get update; \
   apt-get install -y --no-install-recommends \
-    wget gnupg ca-certificates curl unzip git \
+    xz-utils wget gnupg ca-certificates curl unzip git \
     ruby-full ruby-dev build-essential patch \
     g++ cmake pkg-config libssl-dev python3 \
     libgconf-2-4 libxss1 libx11-xcb1 libxtst6 lsb-release \
