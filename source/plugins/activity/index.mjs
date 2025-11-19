@@ -140,11 +140,40 @@ export default async function({login, data, rest, q, account, imports}, {enabled
             case "PullRequestEvent": {
               if (!["opened", "closed"].includes(payload.action))
                 return null
-              const {action, pull_request:{user:{login:user}, title, number, body:content, additions:added, deletions:deleted, changed_files:changed, merged}} = payload
+            
+              const pr = payload.pull_request
+              if (!pr || !pr.user) return null
+            
+              const {
+                title,
+                number,
+                body: content,
+                additions: added,
+                deletions: deleted,
+                changed_files: changed,
+                merged
+              } = pr
+            
+              const user = pr.user.login
+            
               if (!imports.filters.text(user, ignored))
                 return null
-              return {type:customType, actor, timestamp, repo, action:(action === "closed") && (merged) ? "merged" : action, user, title, number, content:await imports.markdown(content, {mode:markdown, codelines}), lines:{added, deleted}, files:{changed}}
+            
+              return {
+                type: customType,
+                actor,
+                timestamp,
+                repo,
+                action: payload.action === "closed" && merged ? "merged" : payload.action,
+                user,
+                title,
+                number,
+                content: await imports.markdown(content, { mode: markdown, codelines }),
+                lines: { added, deleted },
+                files: { changed }
+              }
             }
+
             //Reviewed a pull request
             case "PullRequestReviewEvent": {
               const {review:{state:review}, pull_request:{user:{login:user}, number, title}} = payload
